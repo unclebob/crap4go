@@ -26,6 +26,13 @@ go test ./... -coverprofile=target/coverage/coverage.out
 
 and then analyzes the results.
 
+Source-file analysis runs in parallel and defaults to half the available
+logical CPUs. Override it when needed:
+
+```bash
+crap4go --max-workers 4
+```
+
 ## Output
 
 ```
