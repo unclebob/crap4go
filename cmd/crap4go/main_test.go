@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/unclebob/crap4go/internal/coverage"
@@ -51,5 +53,29 @@ func Beta() int {
 		if parallel[i].Name != serial[i].Name || parallel[i].Complexity != serial[i].Complexity {
 			t.Fatalf("parallel result differs at %d: %#v != %#v", i, parallel[i], serial[i])
 		}
+	}
+}
+
+func TestCoverageCommandDefaultsToGoTestAllPackages(t *testing.T) {
+	cmd := coverageCommand("")
+	want := []string{"go", "test", "./...", "-coverprofile=" + coverageProfile}
+	if !reflect.DeepEqual(cmd.Args, want) {
+		t.Fatalf("coverage command = %#v, want %#v", cmd.Args, want)
+	}
+}
+
+func TestCoverageCommandAppendsCoverageFlagToCustomCommand(t *testing.T) {
+	cmd := coverageCommand("go test -tags appunit ./internal/app")
+	want := "go test -tags appunit ./internal/app -coverprofile=" + coverageProfile
+	if !strings.HasSuffix(cmd.Path, "sh") || len(cmd.Args) != 3 || cmd.Args[2] != want {
+		t.Fatalf("coverage command = path %q args %#v", cmd.Path, cmd.Args)
+	}
+}
+
+func TestCoverageCommandReplacesCoveragePlaceholder(t *testing.T) {
+	cmd := coverageCommand("go test ./internal/app {coverprofile} -run TestThing")
+	want := "go test ./internal/app -coverprofile=" + coverageProfile + " -run TestThing"
+	if !strings.HasSuffix(cmd.Path, "sh") || len(cmd.Args) != 3 || cmd.Args[2] != want {
+		t.Fatalf("coverage command = path %q args %#v", cmd.Path, cmd.Args)
 	}
 }

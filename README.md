@@ -26,6 +26,21 @@ go test ./... -coverprofile=target/coverage/coverage.out
 
 and then analyzes the results.
 
+Override the coverage test command when a project needs a narrower or tagged
+test invocation:
+
+```bash
+crap4go --test-command "go test -tags appunit ./internal/app ./internal/sim"
+```
+
+crap4go appends `-coverprofile=target/coverage/coverage.out` to the command.
+If you need to control where the coverage flag appears, include
+`{coverprofile}` in the command:
+
+```bash
+crap4go --test-command "go test ./internal/app {coverprofile} -run TestEditor"
+```
+
 Source-file analysis runs in parallel and defaults to half the available
 logical CPUs. Override it when needed:
 

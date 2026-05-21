@@ -10,6 +10,7 @@ type Options struct {
 	Message       string
 	ModuleFilters []string
 	MaxWorkers    int
+	TestCommand   string
 }
 
 const HelpMessage = `Usage: crap4go [module-filter ...]
@@ -17,9 +18,12 @@ const HelpMessage = `Usage: crap4go [module-filter ...]
 Runs go test coverage, computes CRAP scores, and prints a report sorted worst first.
 
 Options:
-  -h, --help         Print this help message and exit.
-  --max-workers N    Analyze source files in parallel using N workers.
-                     Defaults to half the number of logical CPUs.
+  -h, --help             Print this help message and exit.
+  --max-workers N        Analyze source files in parallel using N workers.
+                         Defaults to half the number of logical CPUs.
+  --test-command COMMAND Run COMMAND to generate coverage instead of
+                         "go test ./...". crap4go appends the coverage
+                         profile flag unless COMMAND includes {coverprofile}.
 
 Arguments:
   module-filter    Optional source path fragment. When present, only matching
@@ -42,6 +46,14 @@ func ParseArgs(args []string) Options {
 				return Options{Action: "error", Message: "--max-workers requires a positive integer"}
 			}
 			options.MaxWorkers = workers
+			continue
+		}
+		if arg == "--test-command" {
+			i++
+			if i >= len(args) || args[i] == "" {
+				return Options{Action: "error", Message: "--test-command requires a command"}
+			}
+			options.TestCommand = args[i]
 			continue
 		}
 		options.ModuleFilters = append(options.ModuleFilters, arg)

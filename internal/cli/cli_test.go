@@ -45,8 +45,28 @@ func TestParseMaxWorkers(t *testing.T) {
 	}
 }
 
+func TestParseTestCommand(t *testing.T) {
+	options := ParseArgs([]string{"--test-command", "go test -tags appunit ./internal/app", "internal/app"})
+	if options.Action != "analyze" {
+		t.Fatalf("expected analyze, got %q", options.Action)
+	}
+	if options.TestCommand != "go test -tags appunit ./internal/app" {
+		t.Fatalf("unexpected test command: %q", options.TestCommand)
+	}
+	if len(options.ModuleFilters) != 1 || options.ModuleFilters[0] != "internal/app" {
+		t.Fatalf("unexpected filters: %#v", options.ModuleFilters)
+	}
+}
+
 func TestParseMaxWorkersRequiresPositiveInteger(t *testing.T) {
 	options := ParseArgs([]string{"--max-workers", "0"})
+	if options.Action != "error" {
+		t.Fatalf("expected error, got %q", options.Action)
+	}
+}
+
+func TestParseTestCommandRequiresCommand(t *testing.T) {
+	options := ParseArgs([]string{"--test-command"})
 	if options.Action != "error" {
 		t.Fatalf("expected error, got %q", options.Action)
 	}

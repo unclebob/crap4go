@@ -38,7 +38,7 @@ func run(options cli.Options) error {
 	if err := os.MkdirAll(filepath.Dir(coverageProfile), 0o755); err != nil {
 		return err
 	}
-	if err := runCoverage(); err != nil {
+	if err := runCoverage(options.TestCommand); err != nil {
 		return err
 	}
 	profile, err := coverage.LoadProfile(coverageProfile)
@@ -53,11 +53,25 @@ func run(options cli.Options) error {
 	return nil
 }
 
-func runCoverage() error {
-	cmd := exec.Command("go", "test", "./...", "-coverprofile="+coverageProfile)
+func runCoverage(testCommand string) error {
+	cmd := coverageCommand(testCommand)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+func coverageCommand(testCommand string) *exec.Cmd {
+	coverageFlag := "-coverprofile=" + coverageProfile
+	if testCommand == "" {
+		return exec.Command("go", "test", "./...", coverageFlag)
+	}
+	command := testCommand
+	if strings.Contains(command, "{coverprofile}") {
+		command = strings.ReplaceAll(command, "{coverprofile}", coverageFlag)
+	} else {
+		command = command + " " + coverageFlag
+	}
+	return exec.Command("sh", "-c", command)
 }
 
 func sortedEntries(options cli.Options, profile map[string][]coverage.Segment) ([]crap.Entry, error) {
