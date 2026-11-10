@@ -32,33 +32,51 @@ Arguments:
 func ParseArgs(args []string) Options {
 	options := Options{Action: "analyze", MaxWorkers: defaultMaxWorkers()}
 	for i := 0; i < len(args); i++ {
-		arg := args[i]
-		if arg == "-h" || arg == "--help" {
-			return Options{Action: "help", Message: HelpMessage}
+		nextIndex, done, errMsg := applyFlag(&options, args, i)
+		if errMsg != "" {
+			return Options{Action: "error", Message: errMsg}
 		}
-		if arg == "--max-workers" {
-			i++
-			if i >= len(args) {
-				return Options{Action: "error", Message: "--max-workers requires a positive integer"}
-			}
-			workers, err := strconv.Atoi(args[i])
-			if err != nil || workers < 1 {
-				return Options{Action: "error", Message: "--max-workers requires a positive integer"}
-			}
-			options.MaxWorkers = workers
-			continue
+		if done {
+			return options
 		}
-		if arg == "--test-command" {
-			i++
-			if i >= len(args) || args[i] == "" {
-				return Options{Action: "error", Message: "--test-command requires a command"}
-			}
-			options.TestCommand = args[i]
-			continue
-		}
-		options.ModuleFilters = append(options.ModuleFilters, arg)
+		i = nextIndex
 	}
 	return options
+}
+
+func applyFlag(options *Options, args []string, i int) (int, bool, string) {
+	switch args[i] {
+	case "-h", "--help":
+		*options = Options{Action: "help", Message: HelpMessage}
+		return i, true, ""
+	case "--max-workers":
+		return parseMaxWorkersFlag(options, args, i)
+	case "--test-command":
+		return parseTestCommandFlag(options, args, i)
+	default:
+		options.ModuleFilters = append(options.ModuleFilters, args[i])
+		return i, false, ""
+	}
+}
+
+func parseMaxWorkersFlag(options *Options, args []string, i int) (int, bool, string) {
+	if i+1 >= len(args) {
+		return i, false, "--max-workers requires a positive integer"
+	}
+	workers, err := strconv.Atoi(args[i+1])
+	if err != nil || workers < 1 {
+		return i, false, "--max-workers requires a positive integer"
+	}
+	options.MaxWorkers = workers
+	return i + 1, false, ""
+}
+
+func parseTestCommandFlag(options *Options, args []string, i int) (int, bool, string) {
+	if i+1 >= len(args) || args[i+1] == "" {
+		return i, false, "--test-command requires a command"
+	}
+	options.TestCommand = args[i+1]
+	return i + 1, false, ""
 }
 
 func defaultMaxWorkers() int {

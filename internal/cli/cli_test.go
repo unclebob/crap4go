@@ -63,11 +63,19 @@ func TestParseMaxWorkersRequiresPositiveInteger(t *testing.T) {
 	if options.Action != "error" {
 		t.Fatalf("expected error, got %q", options.Action)
 	}
+	missing := ParseArgs([]string{"--max-workers"})
+	if missing.Action != "error" {
+		t.Fatalf("expected error for missing worker value, got %q", missing.Action)
+	}
 }
 
 func TestParseTestCommandRequiresCommand(t *testing.T) {
 	options := ParseArgs([]string{"--test-command"})
 	if options.Action != "error" {
 		t.Fatalf("expected error, got %q", options.Action)
+	}
+	empty := ParseArgs([]string{"--test-command", ""})
+	if empty.Action != "error" {
+		t.Fatalf("expected error for empty test command, got %q", empty.Action)
 	}
 }
