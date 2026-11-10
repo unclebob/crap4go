@@ -122,28 +122,15 @@ func parseProfileLine(line string) (Segment, error) {
 	if len(fields) != 3 {
 		return Segment{}, fmt.Errorf("invalid coverage segment %q", line)
 	}
-	file, rest, found := strings.Cut(fields[0], ":")
+	file, rangePart, found := strings.Cut(fields[0], ":")
 	if !found {
 		return Segment{}, fmt.Errorf("missing file separator")
 	}
-	rangePart, statementPart, found := strings.Cut(rest, " ")
-	if !found {
-		rangePart = rest
-		statementPart = fields[1]
-	}
-	startPart, endPart, found := strings.Cut(rangePart, ",")
-	if !found {
-		return Segment{}, fmt.Errorf("missing range separator")
-	}
-	startLine, startCol, err := parsePosition(startPart)
+	startLine, startCol, endLine, endCol, err := parseRange(rangePart)
 	if err != nil {
 		return Segment{}, err
 	}
-	endLine, endCol, err := parsePosition(endPart)
-	if err != nil {
-		return Segment{}, err
-	}
-	statements, err := strconv.Atoi(statementPart)
+	statements, err := strconv.Atoi(fields[1])
 	if err != nil {
 		return Segment{}, fmt.Errorf("invalid statement count: %w", err)
 	}
@@ -155,6 +142,22 @@ func parseProfileLine(line string) (Segment, error) {
 		File: file, StartLine: startLine, StartCol: startCol, EndLine: endLine,
 		EndCol: endCol, Statements: statements, Count: count,
 	}, nil
+}
+
+func parseRange(rangePart string) (int, int, int, int, error) {
+	startPart, endPart, found := strings.Cut(rangePart, ",")
+	if !found {
+		return 0, 0, 0, 0, fmt.Errorf("missing range separator")
+	}
+	startLine, startCol, err := parsePosition(startPart)
+	if err != nil {
+		return 0, 0, 0, 0, err
+	}
+	endLine, endCol, err := parsePosition(endPart)
+	if err != nil {
+		return 0, 0, 0, 0, err
+	}
+	return startLine, startCol, endLine, endCol, nil
 }
 
 func parsePosition(value string) (int, int, error) {

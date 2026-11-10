@@ -1,9 +1,50 @@
 package coverage
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestLoadProfileReadsFileAndHandlesMissingFile(t *testing.T) {
+	missing, err := LoadProfile(filepath.Join(t.TempDir(), "missing.out"))
+	if err != nil || missing != nil {
+		t.Fatalf("expected nil profile and nil error for missing file, got %#v, %v", missing, err)
+	}
+
+	path := filepath.Join(t.TempDir(), "coverage.out")
+	content := "mode: set\ngithub.com/unclebob/example/foo.go:1.1,2.2 1 1\n"
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	profile, err := LoadProfile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(profile["github.com/unclebob/example/foo.go"]) != 1 {
+		t.Fatalf("expected one segment, got %#v", profile)
+	}
+}
+
+func TestParseProfileRejectsMalformedLines(t *testing.T) {
+	cases := []string{
+		"badline",
+		"nocolon 1 1",
+		"foo.go:1.1 1 1",
+		"foo.go:bad,2.2 1 1",
+		"foo.go:x.1,2.2 1 1",
+		"foo.go:1.x,2.2 1 1",
+		"foo.go:1.1,bad 1 1",
+		"foo.go:1.1,2.2 x 1",
+		"foo.go:1.1,2.2 1 x",
+	}
+	for _, tc := range cases {
+		if _, err := ParseProfile(strings.NewReader(tc)); err == nil {
+			t.Fatalf("expected error for malformed line %q", tc)
+		}
+	}
+}
 
 func TestParseProfile(t *testing.T) {
 	profile, err := ParseProfile(strings.NewReader(`mode: set

@@ -64,6 +64,29 @@ func (w *Widget) Run() {
 	}
 }
 
+func TestExtractGenericAndSelectorMethodNames(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "generic.go")
+	source := `package sample
+
+type Box[T any] struct{}
+type Pair[K comparable, V any] struct{}
+
+func (b *Box[T]) Get() {}
+func (p Pair[K, V]) Put() {}
+`
+	if err := os.WriteFile(path, []byte(source), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	functions, err := ExtractFunctions(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(functions) != 2 || functions[0].Name != "Box.Get" || functions[1].Name != "Pair.Put" {
+		t.Fatalf("unexpected generic method names: %#v", functions)
+	}
+}
+
 func TestCyclomaticComplexityCountsGoDecisionPoints(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "sample.go")
